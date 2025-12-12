@@ -36,11 +36,7 @@ except Exception as e:
     def health():
         return jsonify({'status': 'ok', 'message': 'Serverless function is running'})
 
-# Vercel serverless function handler
-def handler(request):
-    with app.test_request_context(request.url, method=request.method, data=request.get_data()):
-        try:
-            response = app.full_dispatch_request()
-            return response
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+# Export the Flask app for Vercel
+# Vercel will automatically detect this as the handler
+if __name__ == "__main__":
+    app.run(debug=True)
