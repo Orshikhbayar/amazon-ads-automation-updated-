@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 import os
 import sys
 
@@ -7,10 +8,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # Create Flask app
 app = Flask(__name__)
+CORS(app)
 
-# Import routes from main app
+# Try to import routes from main app
 try:
-    sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
     from app import app as main_app
     
     # Copy routes from main app
@@ -23,20 +24,27 @@ try:
                 methods=rule.methods
             )
 except Exception as e:
+    import traceback
+    error_msg = str(e)
+    error_trace = traceback.format_exc()
+    
     # Fallback routes if import fails
     @app.route('/')
     def index():
         return jsonify({
             'message': 'Amazon Ads Automation API',
             'status': 'running',
-            'error': f'Main app import failed: {str(e)}'
+            'error': error_msg,
+            'trace': error_trace
         })
     
     @app.route('/health')
     def health():
-        return jsonify({'status': 'ok', 'message': 'Serverless function is running'})
+        return jsonify({
+            'status': 'ok', 
+            'message': 'Serverless function is running',
+            'import_error': error_msg
+        })
 
-# Export the Flask app for Vercel
-# Vercel will automatically detect this as the handler
-if __name__ == "__main__":
-    app.run(debug=True)
+# Vercel requires the app to be exposed at module level
+# The @vercel/python runtime will automatically use this
