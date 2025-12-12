@@ -26,7 +26,6 @@ Flags:
 
 import os, sys, json, argparse, re
 import numpy as np
-import faiss
 import httpx
 import traceback
 import time
@@ -36,6 +35,14 @@ from typing import List, Tuple
 from packaging import version
 from openai import OpenAI, BadRequestError
 from utils.embedding import get_embedding  # uses EMBEDDING_BACKEND
+
+# Try to import faiss, fall back to lightweight vector search
+try:
+    import faiss
+    USE_FAISS = True
+except ImportError:
+    from utils.vector_search import VectorSearch
+    USE_FAISS = False
 
 # ---------------------------
 # Config
@@ -60,8 +67,15 @@ if missing:
     sys.exit("❌ Missing files:\n  " + "\n  ".join(missing) +
              "\nTip: re-run `ingest_index_json.py` with your current EMBEDDING_MODEL.")
 
-index = faiss.read_index(INDEX_PATH)
-docs  = [json.loads(l) for l in open(DOCS_PATH, "r", encoding="utf-8")]
+# Load index and docs based on available backend
+if USE_FAISS:
+    index = faiss.read_index(INDEX_PATH)
+    docs = [json.loads(l) for l in open(DOCS_PATH, "r", encoding="utf-8")]
+else:
+    # Use lightweight vector search (loads embeddings from docs.jsonl)
+    vector_search = VectorSearch(DOCS_PATH, INDEX_PATH)
+    docs = vector_search.docs
+    index = vector_search  # Use same interface
 
 # Load Japanese name mapping (optional)
 japanese_names = {}

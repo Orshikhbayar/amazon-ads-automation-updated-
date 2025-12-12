@@ -1,2 +1,7 @@
 .vercel
 .DS_Store
+Data/docs_backup.jsonl
+Data/faiss.index
+extract_embeddings.py
+__pycache__/
+*.pyc
